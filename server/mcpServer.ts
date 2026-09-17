@@ -115,31 +115,11 @@ function saveUiUxSettings(settings: any): void {
   fs.writeFileSync(UI_UX_SETTINGS_FILE, JSON.stringify(settings, null, 2), "utf8");
 }
 
-// Initial Default Credentials for OpenCode and Antigravity
-const DEFAULT_CREDENTIALS: McpCredential[] = [
-  {
-    id: "mcp-cred-antigravity-1",
-    name: "Antigravity Agent Master",
-    platform: "antigravity",
-    username: "admin",
-    applicationPassword: "mcp_sec_antigravity_9f82a",
-    scope: "full_control",
-    active: true,
-    createdAt: new Date().toISOString(),
-    totalRequests: 0,
-  },
-  {
-    id: "mcp-cred-opencode-2",
-    name: "OpenCode Developer Client",
-    platform: "opencode",
-    username: "opencode_dev",
-    applicationPassword: "mcp_sec_opencode_371b8",
-    scope: "full_control",
-    active: true,
-    createdAt: new Date().toISOString(),
-    totalRequests: 0,
-  },
-];
+// No default credentials are seeded. The admin creates application passwords
+// through the Admin > MCP panel; they are stored server-side only and never
+// hardcoded in source. Starting empty means the MCP API fails closed until
+// a credential is configured.
+const DEFAULT_CREDENTIALS: McpCredential[] = [];
 
 export function loadMcpCredentials(): McpCredential[] {
   try {

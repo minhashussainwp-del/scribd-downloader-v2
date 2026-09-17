@@ -24,6 +24,8 @@ import {
   loadCustomPages,
   saveCustomPages,
   DEFAULT_CUSTOM_PAGES,
+  loadCorePageSeo,
+  saveCorePageSeo,
 } from "../../data/siteConfig";
 
 interface PageConfig {
@@ -51,8 +53,8 @@ const CORE_SYSTEM_PAGES: PageConfig[] = [
     title: "Homepage & PDF Downloader",
     slug: "/",
     status: "published",
-    metaTitle: "Scribd Downloader - Free High Speed Document & Slide Deck Converter",
-    metaDescription: "Download Scribd documents, presentations, and research papers as high-resolution PDF files with zero wait time. 100% free.",
+    metaTitle: "Scribd Downloader – Download Scribd Documents Free, No Login",
+    metaDescription: "Free Scribd downloader to save Scribd documents, presentations & research papers as clean PDFs. No login, no signup.",
     lastModified: "Today",
   },
   {
@@ -179,7 +181,15 @@ Add paragraphs, bullet points, or instructions here.
 };
 
 export function AdminPages() {
-  const [corePages, setCorePages] = useState<PageConfig[]>(CORE_SYSTEM_PAGES);
+  const [corePages, setCorePages] = useState<PageConfig[]>(() => {
+    // Merge admin-saved SEO overrides (if any) over the built-in core pages
+    const stored = loadCorePageSeo();
+    if (!stored.length) return CORE_SYSTEM_PAGES;
+    return CORE_SYSTEM_PAGES.map((cp) => {
+      const s = stored.find((x) => x.id === cp.id);
+      return s ? { ...cp, metaTitle: s.metaTitle, metaDescription: s.metaDescription } : cp;
+    });
+  });
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [activeTabFilter, setActiveTabFilter] = useState<"all" | "custom" | "core">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -296,6 +306,14 @@ export function AdminPages() {
         p.id === editingPage.id ? { ...editingPage, slug: editingPage.slug, lastModified: "Just now" } : p
       );
       setCorePages(updatedCore);
+      saveCorePageSeo(
+        updatedCore.map(({ id, route, metaTitle, metaDescription }) => ({
+          id,
+          route,
+          metaTitle,
+          metaDescription,
+        }))
+      );
       showNotification(`Core page "${editingPage.title}" settings updated.`);
     }
 

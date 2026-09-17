@@ -629,12 +629,14 @@ export function AdminMcp() {
     }
   };
 
-  // Primary active credential to use for generated configurations
+  // Primary active credential to use for generated configurations.
+  // NOTE: No real credentials are ever hardcoded here. When no credential is
+  // configured yet, sample configs render with empty placeholders.
   const primaryCred = credentials.find((c) => c.active) || credentials[0] || {
-    username: "admin",
-    applicationPassword: "mcp_sec_antigravity_9f82a",
+    username: "",
+    applicationPassword: "",
     platform: "antigravity",
-    name: "Default Agent",
+    name: "Not configured",
   };
 
   const currentHost = typeof window !== "undefined" ? window.location.origin : "https://mysite.com";

@@ -34,6 +34,7 @@ import {
   saveAdSettings,
   loadPageContent,
   loadCustomPages,
+  loadCorePageSeo,
 } from "./data/siteConfig";
 
 const VALID_LANGS: SupportedLanguage[] = ["en", "br", "es", "fr", "de", "id"];
@@ -490,8 +491,15 @@ export default function App() {
       <SeoHead
         page={currentPage}
         post={selectedPost}
-        customTitle={selectedCustomPage?.metaTitle}
-        customDescription={selectedCustomPage?.metaDescription}
+        customTitle={
+          selectedCustomPage?.metaTitle ||
+          loadCorePageSeo().find((p) => p.route === currentPage)?.metaTitle
+        }
+        customDescription={
+          selectedCustomPage?.metaDescription ||
+          loadCorePageSeo().find((p) => p.route === currentPage)?.metaDescription
+        }
+        lang={currentLang}
       />
 
       {/* Anti-AdBlock Detection Modal */}

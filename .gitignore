@@ -8,3 +8,5 @@ coverage/
 !.env.example
 temp_downloads/
 server_storage/
+temp_downloads/
+server_storage/

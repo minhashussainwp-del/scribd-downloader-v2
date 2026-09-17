@@ -1,18 +1,20 @@
 import { useEffect } from "react";
-import { PageRoute, BlogPost } from "../types";
+import { PageRoute, BlogPost, SupportedLanguage } from "../types";
+import { t } from "../data/translations";
 
 interface SeoHeadProps {
   page: PageRoute;
   post?: BlogPost | null;
   customTitle?: string;
   customDescription?: string;
+  lang?: SupportedLanguage;
 }
 
-export function SeoHead({ page, post, customTitle, customDescription }: SeoHeadProps) {
+export function SeoHead({ page, post, customTitle, customDescription, lang = "en" }: SeoHeadProps) {
   useEffect(() => {
-    let title = "Scribd Downloader - Free High-Speed Document & Slide Deck Converter";
+    let title = "Scribd Downloader – Download Scribd Documents Free, No Login";
     let description =
-      "Download Scribd documents, academic research papers, and slide presentations as standard high-resolution PDF files with zero wait time. 100% free and mobile-friendly.";
+      "Free Scribd downloader to save Scribd documents, presentations & research papers as clean PDFs. No login, no signup.";
 
     if (customTitle) {
       title = customTitle;
@@ -130,13 +132,50 @@ export function SeoHead({ page, post, customTitle, customDescription }: SeoHeadP
       });
     }
 
+    // Homepage: FAQPage + HowTo schema for the guide + FAQ sections
+    if (page === "home") {
+      const faqPairs: Array<[string, string]> = [
+        ["faq.q1", "faq.a1"],
+        ["faq.q2", "faq.a2"],
+        ["faq.q3", "faq.a3"],
+        ["faq.q4", "faq.a4"],
+        ["faq.q5", "faq.a5"],
+        ["faq.q6", "faq.a6"],
+        ["faq.q7", "faq.a7"],
+        ["faq.q8", "faq.a8"],
+      ];
+      schemaGraph.push({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": faqPairs.map(([qk, ak]) => ({
+          "@type": "Question",
+          "name": t(qk, lang),
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": t(ak, lang)
+          }
+        }))
+      });
+      schemaGraph.push({
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": t("how.title", lang),
+        "step": [1, 2, 3].map((n) => ({
+          "@type": "HowToStep",
+          "position": n,
+          "name": t(`how.step${n}`, lang),
+          "text": t(`how.step${n}Desc`, lang)
+        }))
+      });
+    }
+
     script.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@graph": schemaGraph
     });
 
     document.head.appendChild(script);
-  }, [page, post, customTitle, customDescription]);
+  }, [page, post, customTitle, customDescription, lang]);
 
   return null;
 }

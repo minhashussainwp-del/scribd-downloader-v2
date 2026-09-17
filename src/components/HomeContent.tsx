@@ -22,6 +22,145 @@ interface HomeContentProps {
   pageContent?: PageContent;
 }
 
+// Lightweight inline markdown: **bold**, *italic*, `code`, [text](url)
+function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const re = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;
+  let last = 0;
+  let idx = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    const key = `${keyPrefix}-in${idx++}`;
+    if (tok.startsWith("**")) {
+      parts.push(
+        <strong key={key} className="font-bold text-slate-900">
+          {tok.slice(2, -2)}
+        </strong>
+      );
+    } else if (tok.startsWith("`")) {
+      parts.push(
+        <code
+          key={key}
+          className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-sm font-mono"
+        >
+          {tok.slice(1, -1)}
+        </code>
+      );
+    } else if (tok.startsWith("[")) {
+      const lm = tok.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+      if (lm) {
+        parts.push(
+          <a
+            key={key}
+            href={lm[2]}
+            className="text-indigo-600 font-semibold hover:underline"
+          >
+            {lm[1]}
+          </a>
+        );
+      } else {
+        parts.push(tok);
+      }
+    } else {
+      parts.push(<em key={key}>{tok.slice(1, -1)}</em>);
+    }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+// Renders one content block: headings, images, lists, or paragraphs
+function renderContentBlock(block: string, i: number): React.ReactNode {
+  const trimmed = block.trim();
+  if (!trimmed) return null;
+
+  // Standalone image: ![alt](src)
+  const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+  if (imgMatch) {
+    return (
+      <figure key={i} className="my-2">
+        <img
+          src={imgMatch[2]}
+          alt={imgMatch[1]}
+          loading="lazy"
+          className="w-full rounded-2xl border border-slate-100 shadow-sm"
+        />
+        {imgMatch[1] && (
+          <figcaption className="mt-2 text-center text-xs text-slate-500 font-medium">
+            {imgMatch[1]}
+          </figcaption>
+        )}
+      </figure>
+    );
+  }
+
+  if (trimmed.startsWith("## ")) {
+    const lines = trimmed.split("\n");
+    const headingText = lines[0].replace("## ", "").trim();
+    const bodyText = lines.slice(1).join("\n").trim();
+    return (
+      <React.Fragment key={i}>
+        <h3 className="text-xl font-bold text-slate-900 pt-3">
+          {renderInline(headingText, `h${i}`)}
+        </h3>
+        {bodyText && (
+          <p className="text-slate-700 font-medium leading-relaxed m-0">
+            {renderInline(bodyText, `hb${i}`)}
+          </p>
+        )}
+      </React.Fragment>
+    );
+  }
+  if (trimmed.startsWith("### ")) {
+    const lines = trimmed.split("\n");
+    const headingText = lines[0].replace("### ", "").trim();
+    const bodyText = lines.slice(1).join("\n").trim();
+    return (
+      <React.Fragment key={i}>
+        <h4 className="text-lg font-bold text-slate-800 pt-2">
+          {renderInline(headingText, `sh${i}`)}
+        </h4>
+        {bodyText && (
+          <p className="text-slate-700 font-medium leading-relaxed m-0">
+            {renderInline(bodyText, `shb${i}`)}
+          </p>
+        )}
+      </React.Fragment>
+    );
+  }
+
+  const lines = trimmed.split("\n");
+  // Bullet list
+  if (lines.length > 1 && lines.every((l) => /^\s*[-•]\s+/.test(l))) {
+    return (
+      <ul key={i} className="list-disc pl-6 space-y-2 text-slate-700 font-medium leading-relaxed m-0">
+        {lines.map((l, j) => (
+          <li key={j}>{renderInline(l.replace(/^\s*[-•]\s+/, ""), `bl${i}-${j}`)}</li>
+        ))}
+      </ul>
+    );
+  }
+  // Numbered list
+  if (lines.length > 1 && lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) {
+    return (
+      <ol key={i} className="list-decimal pl-6 space-y-2 text-slate-700 font-medium leading-relaxed m-0">
+        {lines.map((l, j) => (
+          <li key={j}>{renderInline(l.replace(/^\s*\d+[.)]\s+/, ""), `nl${i}-${j}`)}</li>
+        ))}
+      </ol>
+    );
+  }
+
+  return (
+    <p key={i} className="text-slate-700 font-medium leading-relaxed m-0">
+      {renderInline(trimmed, `p${i}`)}
+    </p>
+  );
+}
+
 export function HomeContent({
   onNavigate,
   posts,
@@ -195,51 +334,8 @@ export function HomeContent({
               {/* Guide Content Display */}
               <div className="prose prose-slate max-w-none space-y-6">
                 {pageContent?.content ? (
-                  <div className="whitespace-pre-wrap font-sans text-slate-700 text-base leading-relaxed space-y-4">
-                    {pageContent.content.split("\n\n").map((block, i) => {
-                      const trimmed = block.trim();
-                      if (!trimmed) return null;
-
-                      if (trimmed.startsWith("## ")) {
-                        const lines = trimmed.split("\n");
-                        const headingText = lines[0].replace("## ", "").trim();
-                        const bodyText = lines.slice(1).join("\n").trim();
-                        return (
-                          <React.Fragment key={i}>
-                            <h3 className="text-xl font-bold text-slate-900 pt-3">
-                              {headingText}
-                            </h3>
-                            {bodyText && (
-                              <p className="text-slate-700 font-medium leading-relaxed m-0">
-                                {bodyText}
-                              </p>
-                            )}
-                          </React.Fragment>
-                        );
-                      }
-                      if (trimmed.startsWith("### ")) {
-                        const lines = trimmed.split("\n");
-                        const headingText = lines[0].replace("### ", "").trim();
-                        const bodyText = lines.slice(1).join("\n").trim();
-                        return (
-                          <React.Fragment key={i}>
-                            <h4 className="text-lg font-bold text-slate-800 pt-2">
-                              {headingText}
-                            </h4>
-                            {bodyText && (
-                              <p className="text-slate-700 font-medium leading-relaxed m-0">
-                                {bodyText}
-                              </p>
-                            )}
-                          </React.Fragment>
-                        );
-                      }
-                      return (
-                        <p key={i} className="text-slate-700 font-medium leading-relaxed m-0">
-                          {trimmed}
-                        </p>
-                      );
-                    })}
+                  <div className="font-sans text-slate-700 text-base leading-relaxed space-y-4">
+                    {pageContent.content.split("\n\n").map((block, i) => renderContentBlock(block, i))}
                   </div>
                 ) : (
                   <>
